@@ -1,5 +1,5 @@
 🛠 請選擇對應的 PR 類型：
 
-- [新增功能（Feature）](pull_request_template/feature.md)
-- [修 Bug（Bugfix）](pull_request_template/bugfix.md)
-- [重構（Refactor）](pull_request_template/refactor.md)
+- [新增功能（Feature）](PULL_REQUEST_TEMPLATE/feature.md)
+- [修 Bug（Bugfix）](PULL_REQUEST_TEMPLATE/bugfix.md)
+- [重構（Refactor）](PULL_REQUEST_TEMPLATE/refactor.md)
