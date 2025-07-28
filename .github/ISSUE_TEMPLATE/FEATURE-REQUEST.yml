@@ -59,6 +59,15 @@ body:
       required: true
 
   - type: textarea
+    id: screenshot
+    attributes:
+      label: 🖼️ 設計圖 / 示意圖（可選）
+      description: 可將圖片拖曳進來，或 Ctrl+V 貼上
+      placeholder: 請在此貼上或拖入圖片（如草圖、UI 範本）
+    validations:
+      required: false
+
+  - type: textarea
     id: notes
     attributes:
       label: 📎 備註（可選）
