@@ -1,80 +1,48 @@
-name: "🐛 Bug Report"
-description: Create a new ticket for a bug.
-title: "🐛 [BUG] - <title>"
-labels: [
-  "bug"
-]
+name: 🐛 Bug Report
+description: 回報錯誤問題
+title: "[BUG] <問題描述>"
+labels: ["bug", "MissionType:Bug"]
 body:
   - type: textarea
-    id: description
+    id: what_happened
     attributes:
-      label: "Description"
-      description: Please enter an explicit description of your issue
-      placeholder: Short and explicit description of your incident...
+      label: 💥 問題描述
+      description: 發生了什麼問題？重現步驟是什麼？
+      placeholder: |
+        - 啟動系統
+        - 點選登入按鈕
+        - 無反應
     validations:
       required: true
-  - type: input
-    id: reprod-url
-    attributes:
-      label: "Reproduction URL"
-      description: Please enter your GitHub URL to provide a reproduction of the issue
-      placeholder: ex. https://github.com/USERNAME/REPO-NAME
-    validations:
-      required: true
+
   - type: textarea
-    id: reprod
+    id: expected
     attributes:
-      label: "Reproduction steps"
-      description: Please enter an explicit description of your issue
-      value: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
-      render: bash
-    validations:
-      required: true
-  - type: textarea
-    id: screenshot
-    attributes:
-      label: "Screenshots"
-      description: If applicable, add screenshots to help explain your problem.
-      value: |
-        ![DESCRIPTION](LINK.png)
-      render: bash
+      label: ✅ 預期行為
+      placeholder: 預期登入後應跳轉至 Dashboard
     validations:
       required: false
+
+  - type: input
+    id: env
+    attributes:
+      label: 🧪 測試環境（可選）
+      placeholder: e.g., Chrome 118, Ubuntu 22.04
+    validations:
+      required: false
+
   - type: textarea
     id: logs
     attributes:
-      label: "Logs"
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
-      render: bash
+      label: 📋 錯誤日誌 / 截圖（可選）
+      placeholder: 請附上錯誤訊息或截圖
     validations:
       required: false
-  - type: dropdown
-    id: browsers
+
+  - type: input
+    id: priority
     attributes:
-      label: "Browsers"
-      description: What browsers are you seeing the problem on ?
-      multiple: true
-      options:
-        - Firefox
-        - Chrome
-        - Safari
-        - Microsoft Edge
-        - Opera
-    validations:
-      required: false
-  - type: dropdown
-    id: os
-    attributes:
-      label: "OS"
-      description: What is the impacted environment ?
-      multiple: true
-      options:
-        - Windows
-        - Linux
-        - Mac
+      label: 🚨 優先級（High / Medium / Low）
+      placeholder: High
     validations:
       required: false
