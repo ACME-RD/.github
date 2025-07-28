@@ -1,17 +1,25 @@
-name: 🐛 Bug Report
-description: 回報錯誤問題
-title: "[BUG] <問題描述>"
+name: 🐞 Bug Report
+description: 回報系統錯誤或異常行為
+title: "[BUG] <請輸入錯誤簡述>"
 labels: ["bug", "MissionType:Bug"]
 body:
   - type: textarea
-    id: what_happened
+    id: description
     attributes:
-      label: 💥 問題描述
-      description: 發生了什麼問題？重現步驟是什麼？
+      label: ❗ 問題描述
+      placeholder: 請簡單說明發生了什麼問題
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🧪 重現步驟
       placeholder: |
-        - 啟動系統
-        - 點選登入按鈕
-        - 無反應
+        請具體說明如何重現這個 bug，例如：
+        1. 登入帳號
+        2. 點選「提交」
+        3. 出現錯誤訊息
     validations:
       required: true
 
@@ -19,30 +27,26 @@ body:
     id: expected
     attributes:
       label: ✅ 預期行為
-      placeholder: 預期登入後應跳轉至 Dashboard
+      placeholder: 原本應該要發生什麼？
     validations:
-      required: false
+      required: true
 
-  - type: input
-    id: env
+  - type: textarea
+    id: screenshot
     attributes:
-      label: 🧪 測試環境（可選）
-      placeholder: e.g., Chrome 118, Ubuntu 22.04
+      label: 🖼️ 錯誤畫面（建議上傳圖片）
+      description: 可將圖片拖曳進來，或複製貼上
+      placeholder: 請將截圖拖進來或 Ctrl+V 貼上
     validations:
       required: false
 
   - type: textarea
-    id: logs
+    id: env
     attributes:
-      label: 📋 錯誤日誌 / 截圖（可選）
-      placeholder: 請附上錯誤訊息或截圖
-    validations:
-      required: false
-
-  - type: input
-    id: priority
-    attributes:
-      label: 🚨 優先級（High / Medium / Low）
-      placeholder: High
+      label: 🧰 執行環境
+      placeholder: |
+        - 裝置 / 瀏覽器：Windows / Chrome 116
+        - 登入帳號狀態：已登入
+        - 網路環境：公司內部 / VPN
     validations:
       required: false
