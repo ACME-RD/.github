@@ -1,0 +1,41 @@
+name: 📦 Epic Feature
+description: 用於建立大型功能的主任務，並追蹤所有子任務
+title: "[EPIC] <功能名稱>"
+labels: ["epic", "MissionType:Feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: ✨ 功能總覽
+      description: 此 Epic 的目標、使用者價值、背景為何？
+      placeholder: 請說明為何需要這個 Epic。
+    validations:
+      required: true
+
+  - type: textarea
+    id: subtask_checklist
+    attributes:
+      label: ✅ 初始子任務清單（Issue ID or 文字）
+      description: 可先列出預期子任務，日後可補充、修改。格式建議：- [ ] #123
+      placeholder: |
+        - [ ] #101 註冊 API 撰寫
+        - [ ] #102 設計 UI
+        - [ ] 密碼驗證流程
+    validations:
+      required: false
+
+  - type: input
+    id: priority
+    attributes:
+      label: 🔥 優先級（High / Medium / Low）
+      placeholder: High
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 📎 備註（可選）
+      placeholder: 可填需求討論、備忘、風險點等
+    validations:
+      required: false
