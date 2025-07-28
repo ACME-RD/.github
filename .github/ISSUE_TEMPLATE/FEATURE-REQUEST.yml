@@ -1,63 +1,66 @@
-name: "💡 Feature Request"
-description: Create a new ticket for a new feature request
-title: "💡 [REQUEST] - <title>"
-labels: [
-  "question"
-]
+name: 🚀 Feature Request / Subtask
+description: 提交新功能或子任務
+title: "[FEATURE] <功能名稱>"
+labels: ["feature", "MissionType:Feature"]
 body:
+  - type: dropdown
+    id: is_subtask
+    attributes:
+      label: 📂 是否為子任務（Subtask）
+      options:
+        - 否，這是獨立功能（Epic）
+        - 是，這是 Epic 之下的一個子任務
+      default: 1
+    validations:
+      required: true
+
   - type: input
-    id: start_date
+    id: parent_issue
     attributes:
-      label: "Start Date"
-      description: Start of development
-      placeholder: "month/day/year"
+      label: 🔗 若為子任務，請填 Epic Issue ID（如 #123）
+      placeholder: "#123"
     validations:
       required: false
+
   - type: textarea
-    id: implementation_pr
+    id: description
     attributes:
-      label: "Implementation PR"
-      description: Pull request used
-      placeholder: "#Pull Request ID"
+      label: ✨ 功能描述
+      placeholder: 功能要做什麼？誰會使用？預期怎樣？
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: 👤 使用者故事（可選）
+      placeholder: |
+        範例：
+        - 作為訪客，我希望可以快速註冊，這樣我就能建立個人帳號。
     validations:
       required: false
-  - type: textarea
-    id: reference_issues
+
+  - type: input
+    id: priority
     attributes:
-      label: "Reference Issues"
-      description: Common issues
-      placeholder: "#Issues IDs"
+      label: ⏱️ 優先級（High / Medium / Low）
+      placeholder: Medium
     validations:
       required: false
-  - type: textarea
-    id: summary
+
+  - type: dropdown
+    id: is_security
     attributes:
-      label: "Summary"
-      description: Provide a brief explanation of the feature
-      placeholder: Describe in a few lines your feature request
+      label: 🔒 是否為資安相關項目？
+      options:
+        - 否
+        - 是（Chore）
     validations:
       required: true
+
   - type: textarea
-    id: basic_example
+    id: notes
     attributes:
-      label: "Basic Example"
-      description: Indicate here some basic examples of your feature.
-      placeholder: A few specific words about your feature request.
-    validations:
-      required: true
-  - type: textarea
-    id: drawbacks
-    attributes:
-      label: "Drawbacks"
-      description: What are the drawbacks/impacts of your feature request ?
-      placeholder: Identify the drawbacks and impacts while being neutral on your feature request
-    validations:
-      required: true
-  - type: textarea
-    id: unresolved_question
-    attributes:
-      label: "Unresolved questions"
-      description: What questions still remain unresolved ?
-      placeholder: Identify any unresolved issues.
+      label: 📎 備註（可選）
     validations:
       required: false
