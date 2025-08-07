@@ -14,7 +14,7 @@ body:
     validations:
       required: true
 
-  - type: input
+  - type: textarea
     id: parent_issue
     attributes:
       label: 🔗 若為子任務，請填 Epic Issue ID（如 #123）
