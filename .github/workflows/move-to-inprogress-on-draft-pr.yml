@@ -1,0 +1,242 @@
+name: OrgProject - Move linked issues to In Progress on Draft PR
+
+on:
+  workflow_call:
+    inputs:
+      ORG_LOGIN:
+        description: "Organization login (e.g. ACME-RD)"
+        required: true
+        type: string
+      # 二選一：提供 ORG_PROJECT_ID（最穩），或提供 ORG_PROJECT_TITLE
+      ORG_PROJECT_ID:
+        description: "Organization Project v2 Node ID (preferred)"
+        required: false
+        type: string
+      ORG_PROJECT_TITLE:
+        description: "Organization Project v2 Title (used if ID not set)"
+        required: false
+        type: string
+
+      STATUS_FIELD_NAME:
+        description: "Single-select field name, usually 'Status'"
+        required: true
+        type: string
+
+      # 目標選項：可用 ID（建議）或名稱（二擇一提供）
+      STATUS_OPTION_INPROGRESS_ID:
+        description: "Target Status option ID (preferred)"
+        required: false
+        type: string
+      STATUS_OPTION_INPROGRESS:
+        description: "Target Status option name (supports emoji; exact match)"
+        required: false
+        type: string
+
+      # 備援：若在被呼叫者拿不到 PR，允許 caller 傳入 PR number
+      PR_NUMBER:
+        description: "Fallback PR number if context.payload.pull_request is not available"
+        required: false
+        type: string
+
+    secrets:
+      ORG_PROJECT_TOKEN:
+        required: true
+
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: ${{ github.workflow }}-${{ inputs.PR_NUMBER || github.run_id }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Move linked issues to In Progress (Org Project)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ORG_PROJECT_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // ---- 0) 事件/輸入健全性檢查 ----
+            const prFromPayload = context.payload && context.payload.pull_request ? context.payload.pull_request : null;
+            const prNumber = prFromPayload?.number || ( "${{ inputs.PR_NUMBER }}" ? Number("${{ inputs.PR_NUMBER }}") : null );
+            if (!prNumber) {
+              core.setFailed("PR number not found. Pass inputs.PR_NUMBER from caller or ensure pull_request payload is available.");
+              return;
+            }
+
+            const action = context.payload?.action || "";
+            const isDraft = prFromPayload?.draft === true || action === "converted_to_draft";
+            if (!isDraft) {
+              core.info("Not a draft PR event. Skip.");
+              return;
+            }
+
+            const orgLogin = "${{ inputs.ORG_LOGIN }}".trim();
+            const projectIdInput = "${{ inputs.ORG_PROJECT_ID }}".trim();
+            const projectTitleInput = "${{ inputs.ORG_PROJECT_TITLE }}".trim();
+            if (!projectIdInput && !projectTitleInput) {
+              core.setFailed("Either ORG_PROJECT_ID or ORG_PROJECT_TITLE must be provided.");
+              return;
+            }
+
+            const statusFieldName = "${{ inputs.STATUS_FIELD_NAME }}".trim();
+            const inprogIdInput   = "${{ inputs.STATUS_OPTION_INPROGRESS_ID }}".trim();
+            const inprogNameInput = "${{ inputs.STATUS_OPTION_INPROGRESS }}"; // 可能含 emoji，不 trim/變更大小寫
+
+            if (!inprogIdInput && !inprogNameInput) {
+              core.setFailed("Provide STATUS_OPTION_INPROGRESS_ID (preferred) or STATUS_OPTION_INPROGRESS (name).");
+              return;
+            }
+
+            // ---- 1) 定位 Org Project ----
+            let projectId = projectIdInput || null;
+            if (!projectId) {
+              const orgProj = await github.graphql(`
+                query($login:String!){
+                  organization(login:$login){
+                    projectsV2(first:100){ nodes{ id title } }
+                  }
+                }`, { login: orgLogin }
+              );
+              const p = orgProj.organization.projectsV2.nodes.find(n => n.title === projectTitleInput);
+              if (!p) throw new Error(`Org Project not found by title: '${projectTitleInput}'`);
+              projectId = p.id;
+            }
+            core.info(`Target Project: ${projectId} (${projectTitleInput || "by ID"})`);
+
+            // ---- 2) 取得 Draft PR 關閉關鍵字對應的 issues ----
+            const prInfo = await github.graphql(`
+              query($owner:String!, $repo:String!, $num:Int!){
+                repository(owner:$owner, name:$repo){
+                  pullRequest(number:$num){
+                    number
+                    draft
+                    closingIssuesReferences(first:50){ nodes{ id number } }
+                  }
+                }
+              }`, { owner, repo, num: prNumber }
+            );
+            const prNode = prInfo.repository.pullRequest;
+            const linked = prNode.closingIssuesReferences.nodes || [];
+            if (linked.length === 0) {
+              core.info("No linked issues via closing keywords. Nothing to move.");
+              return;
+            }
+            core.info(`Linked issues: ${linked.map(i => "#" + i.number).join(", ")}`);
+
+            // ---- 3) 找到 Project 的 Status 欄位與目標選項 ----
+            const fields = await github.graphql(`
+              query($pid:ID!){
+                node(id:$pid){
+                  ... on ProjectV2 {
+                    fields(first:100){
+                      nodes{
+                        __typename
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }`, { pid: projectId }
+            );
+
+            const statusField = fields.node.fields.nodes
+              .find(f => f.__typename === "ProjectV2SingleSelectField" && f.name === statusFieldName);
+
+            if (!statusField) throw new Error(`Field not found on project: '${statusFieldName}'`);
+
+            // 列出可用選項，方便除錯
+            core.info(`Available Status options:`);
+            for (const o of statusField.options) core.info(`- ${o.id} :: '${o.name}'`);
+
+            let targetOption = null;
+            if (inprogIdInput) {
+              targetOption = statusField.options.find(o => o.id === inprogIdInput);
+            } else {
+              // 名稱比對（含 emoji），大小寫不敏感，但其他字元必須一樣
+              const want = inprogNameInput.toLowerCase();
+              targetOption = statusField.options.find(o => o.name.toLowerCase() === want);
+            }
+            if (!targetOption) {
+              throw new Error(`Target Status option not found. By ${inprogIdInput ? "ID" : "name"}: '${inprogIdInput || inprogNameInput}'`);
+            }
+            core.info(`Target option: ${targetOption.id} :: '${targetOption.name}'`);
+
+            // ---- 4) 逐個 Issue → 找到其在此 Project 的 item，若未是目標狀態則更新 ----
+            for (const it of linked) {
+              // 4.1 取得 issue 的 project item（在該 Org Project 中）
+              const issueQ = await github.graphql(`
+                query($owner:String!, $repo:String!, $num:Int!){
+                  repository(owner:$owner, name:$repo){
+                    issue(number:$num){
+                      id
+                      projectItems(first:50){
+                        nodes{ id project{ id title } }
+                      }
+                    }
+                  }
+                }`, { owner, repo, num: it.number }
+              );
+              const issue = issueQ.repository.issue;
+              const item = issue.projectItems.nodes.find(n => n.project.id === projectId);
+              if (!item) {
+                core.info(`Issue #${it.number} is NOT in the target project. Skip.`);
+                continue;
+              }
+
+              // 4.2 冪等：查目前的 Status 值
+              const fvQ = await github.graphql(`
+                query($itemId:ID!, $fieldName:String!){
+                  node(id:$itemId){
+                    ... on ProjectV2Item {
+                      fieldValueByName(name:$fieldName){
+                        __typename
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                          optionId
+                        }
+                      }
+                    }
+                  }
+                }`, { itemId: item.id, fieldName: statusFieldName }
+              );
+              const current = fvQ.node.fieldValueByName;
+              const currentName = current?.name || null;
+              const currentId   = current?.optionId || null;
+
+              if (currentId === targetOption.id || (currentName && currentName.toLowerCase() === targetOption.name.toLowerCase())) {
+                core.info(`Issue #${it.number} already in '${targetOption.name}'. Skip.`);
+                continue;
+              }
+
+              // 4.3 更新為目標狀態
+              await github.graphql(`
+                mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optId:String!){
+                  updateProjectV2ItemFieldValue(
+                    input:{
+                      projectId:$projectId
+                      itemId:$itemId
+                      fieldId:$fieldId
+                      value:{ singleSelectOptionId:$optId }
+                    }
+                  ){
+                    clientMutationId
+                  }
+                }`, {
+                  projectId: projectId,
+                  itemId: item.id,
+                  fieldId: statusField.id,
+                  optId: targetOption.id
+              });
+
+              core.info(`Moved #${it.number} → '${targetOption.name}'`);
+            }
+
